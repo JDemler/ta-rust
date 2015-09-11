@@ -61,7 +61,27 @@ events.connect(events.LEXER_LOADED, function (lang)
 end)
 
 local function fmt()
-  spawn([[rustfmt --write-mode=overwrite ]] .. buffer.filename)
+  p = spawn([[rustfmt --write-mode=overwrite ]] .. buffer.filename,
+    nil,
+    function() return  end,
+    function(err)
+      local line, msg = err:match('(%d-):%d-:([^\n]+)')
+      if line and msg and tonumber(line) > 0 then
+        -- Scintilla line numbers start from 0
+        line = line - 1.
+        -- If error is off screen, show annotation on the current line.
+        if (line < buffer.first_visible_line) or
+           (line > buffer.first_visible_line + buffer.lines_on_screen) then
+          line = buffer.line_from_position(buffer.current_pos)
+          msg = 'Line '..first
+        end
+        buffer.annotation_visible = 2
+        buffer.annotation_text[line] = msg
+        buffer.annotation_style[line] = 8 -- error style number
+      end
+    end
+  )
+  p:wait()
   io.reload_file()
 end
 
