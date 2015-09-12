@@ -60,27 +60,29 @@ events.connect(events.LEXER_LOADED, function (lang)
 --  buffer.edge_column = 99
 end)
 
-local function fmt()
-  p = spawn([[rustfmt --write-mode=overwrite ]] .. buffer.filename,
-    nil,
-    function() return  end,
-    function(err)
-      local line, msg = err:match('(%d-):%d-:([^\n]+)')
-      if line and msg and tonumber(line) > 0 then
-        -- Scintilla line numbers start from 0
-        line = line - 1.
-        -- If error is off screen, show annotation on the current line.
-        if (line < buffer.first_visible_line) or
-           (line > buffer.first_visible_line + buffer.lines_on_screen) then
-          line = buffer.line_from_position(buffer.current_pos)
-          msg = 'Line '..first
-        end
-        buffer.annotation_visible = 2
-        buffer.annotation_text[line] = msg
-        buffer.annotation_style[line] = 8 -- error style number
-      end
+local errm  = function(err)
+  buffer:annotation_clear_all()
+
+  local line, msg = err:match('(%d+):%d-:([^\n]+)')
+  if line and msg and tonumber(line) > 0 then
+    -- Scintilla line numbers start from 0
+    line = line - 1.
+    -- If error is off screen, show annotation on the current line.
+    if (line < buffer.first_visible_line) or
+       (line > buffer.first_visible_line + buffer.lines_on_screen) then
+      line = buffer.line_from_position(buffer.current_pos)
+      msg = 'Line '.. msg
     end
-  )
+    buffer.annotation_visible = 2
+    buffer.annotation_text[line] = msg:match("%a+:%s.+")
+    buffer.annotation_style[line] = 8 -- error style number
+  end
+end
+
+local function fmt()
+  p = spawn([[rustfmt --write-mode=overwrite ]] .. buffer.filename)
+  errm(p:read('*a'))
+
   p:wait()
   io.reload_file()
 end
