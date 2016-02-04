@@ -31,25 +31,20 @@ local function autocomplete()
   -- symbol behind caret
   local line, pos = buffer:get_cur_line()
   local part = line:sub(1, pos):match('([%w_]*)$')
-  if part == '' then return nil end -- nothing to match against
 
-  -- Search through ctags for completions for that symbol.
-  local name_patt = '^'..part
+  local cmd = ("racer complete-with-snippet %s %s %s"):format(line, pos, buffer.filename)
+  local f = io.popen(cmd)
+ 
   local sep = string.char(buffer.auto_c_type_separator)
-  for i = 1, #tag_files do
-    if lfs.attributes(tag_files[i]) then
-      for line in io.lines(tag_files[i]) do
-        local name = line:match('^%S+')
-        if name:find(name_patt) and not name:find('^!') and not list[name] then
-          local k = line:match('\t(%a)$')
-          if k then
-            list[#list + 1] = ("%s%s%d"):format(name, sep, xpms[k])
-            list[name] = true
-          end
-        end
-      end
+  pattern = "MATCH ([^,]*).*"
+  for line in f:lines() do
+    if line:match(pattern) then
+      sub, num_matches = line:gsub(pattern, "%1")
+      list[#list + 1] = ("%s%s%d"):format(sub, sep, xpms["c"])
+      list[sub] = true
     end
   end
+
   return #part, list
 end
 
