@@ -27,17 +27,26 @@ local xpms = setmetatable({
 --- potentially builds autocomplete using tags.
 local function autocomplete()
   local list = {}
+  print("AutoComplete: Save file...")
+  local modified = buffer.modify
+  if modified then
+    print("Buffer Modified")
+    io.save_file()
+  end
 
   -- symbol behind caret
   local line, pos = buffer:get_cur_line()
   local part = line:sub(1, pos):match('([%w_]*)$')
-
-  local cmd = ("racer complete-with-snippet %s %s %s"):format(line, pos, buffer.filename)
+  local lineNumber = buffer:line_from_position(buffer.current_pos) + 1
+  local cmd = ("racer complete %d %d %s"):format(lineNumber, pos, buffer.filename)
+  print(cmd)
   local f = io.popen(cmd)
- 
+
   local sep = string.char(buffer.auto_c_type_separator)
-  pattern = "MATCH ([^,]*).*"
+  pattern = "MATCH ([%w_]+).*"
   for line in f:lines() do
+    print(line)
+    print("_______")
     if line:match(pattern) then
       sub, num_matches = line:gsub(pattern, "%1")
       list[#list + 1] = ("%s%s%d"):format(sub, sep, xpms["c"])

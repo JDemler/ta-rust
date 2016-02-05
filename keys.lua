@@ -21,19 +21,5 @@ return {
     buffer:add_text("/// ");
   end,
 
-  ['cB'] = function()
-    local project_name, project_path = raw.get_project_name()
 
-    if project_path then
-      local tmp = raw.build(project_path)
-
-      api.build(project_name, project_path, tmp)
-      tag.build(project_name, project_path, tmp)
-      os.remove(tmp)
-
-      api.add_apitag(project_name, project_path)
-    end
-
-    return textadept.run.build()
-  end,
 }
